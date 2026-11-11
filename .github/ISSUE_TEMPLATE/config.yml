@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 大肌肌贡献指南
+    url: https://github.com/abcpark666-dev/dajiji/blob/main/CONTRIBUTING.md
+    about: 提交问题或拉取请求前，请先查看本改版的说明。
+  - name: 安全问题私密报告
+    url: https://github.com/abcpark666-dev/dajiji/blob/main/SECURITY.md
+    about: 请按本项目安全说明报告漏洞，不要将漏洞发给上游项目。

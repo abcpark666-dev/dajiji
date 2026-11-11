@@ -1,0 +1,7 @@
+{
+  "name": "dajiji",
+  "version": "0.1.0",
+  "devDependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}

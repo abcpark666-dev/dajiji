@@ -1,0 +1,119 @@
+// 大肌肌 NFC stickers use the app's own dajiji:// scheme in plain NDEF URI records.
+// Android opens them directly through the manifest's NDEF_DISCOVERED filter. No tag is
+// routed through the upstream website, and the Android-only fork does not offer iOS NFC.
+//
+// Only our own stickers: nothing here reads, copies or emulates a gym's access card.
+import { effectiveRoutineIds, effectiveRoutines } from './history.js'
+import { canonicalExId } from './exercises.js'
+
+export const SCHEME = 'dajiji'
+const ID_RE = /^[A-Za-z0-9_-]{1,64}$/
+const cleanId = v => (typeof v === 'string' && ID_RE.test(v) ? v : null)
+
+/** The link a sticker gets: { kind: 'checkin', start, card } or { kind: 'exercise', id }. */
+export function tagUrl(tag) {
+  const q = new URLSearchParams()
+  if (tag?.kind === 'exercise') {
+    const id = cleanId(String(tag.id ?? ''))
+    if (!id) throw new Error('bad exercise id')
+    q.set('ex', id)
+  } else if (tag?.kind === 'checkin') {
+    q.set('do', tag.start ? 'start' : 'checkin')
+    const card = cleanId(tag.card)
+    if (card && !tag.start) q.set('card', card)
+  } else {
+    throw new Error('unknown tag')
+  }
+  return `${SCHEME}://nfc?${q}`
+}
+
+const fromQuery = q => {
+  const ex = q.get('ex')
+  if (ex != null) { const id = cleanId(ex); return id ? { kind: 'exercise', id } : null }
+  const what = q.get('do')
+  if (what === 'start') return { kind: 'checkin', start: true, card: null }
+  if (what === 'checkin') return { kind: 'checkin', start: q.get('start') === '1', card: cleanId(q.get('card')) }
+  return null
+}
+
+/**
+ * What a link read from a sticker asks for, or null for
+ * anything that is not one of ours. Never throws.
+ */
+export function parseTagUrl(raw) {
+  if (typeof raw !== 'string' || raw.length > 512) return null
+  let u
+  try { u = new URL(raw.trim()) } catch { return null }
+  const proto = u.protocol.toLowerCase()
+  if (proto !== SCHEME + ':') return null
+  // dajiji://nfc?…, dajiji://checkin?start=1, dajiji://start, dajiji://exercise/<id>
+  const host = (u.hostname || '').toLowerCase()
+  const rest = u.pathname.replace(/^\/+/, '').replace(/\/+$/, '')
+  if (host === 'nfc' && !rest) return fromQuery(u.searchParams)
+  if (host === 'start' && !rest) return { kind: 'checkin', start: true, card: null }
+  if (host === 'checkin' && !rest) return { kind: 'checkin', start: u.searchParams.get('start') === '1', card: cleanId(u.searchParams.get('card')) }
+  if (host === 'exercise') { const id = cleanId(rest); return id ? { kind: 'exercise', id } : null }
+  return null
+}
+
+const liveSession = S => !!S?.active && !S.active.editingWorkoutId && !S.active.backfill
+
+/**
+ * What the app does for a tag, decided from the state alone (the screens act on it, nfc-run.js):
+ *   { do: 'start', ids }       today's planned session, through the usual Start (weigh-in first)
+ *   { do: 'open-workout' }     a workout is running already: open it, never start a second one
+ *   { do: 'open-start' }       nothing planned today: the Start screen to pick from
+ *   { do: 'checkin', card }    the membership code, on that card when it still exists
+ *   { do: 'jump', idx }        a machine whose exercise is in the running session
+ *   { do: 'offer-add', id }    a machine whose exercise is not in it: ask before adding
+ *   { do: 'details', id }      a machine outside a workout: the exercise's details
+ *   { do: 'unknown-exercise' } an exercise this profile does not have (a deleted own one)
+ *   { do: 'ignore' }           not one of ours
+ * `hasExercise(id)` says whether the library knows the id (catalogue or the user's own).
+ */
+export function routeTag(S, tag, { today, hasExercise = () => false } = {}) {
+  if (!tag || !S) return { do: 'ignore' }
+  if (tag.kind === 'checkin') {
+    if (!tag.start) {
+      const cards = S.checkIn !== false && Array.isArray(S.gymCards) ? S.gymCards : []
+      if (cards.length) return { do: 'checkin', card: cards.some(c => c?.id === tag.card) ? tag.card : null }
+      // No code to show: the same as a start sticker, minus starting anything on its own.
+      return { do: S.active ? 'open-workout' : 'open-start' }
+    }
+    if (S.active) return { do: 'open-workout' }
+    // The Start tab's rule (TabBar): a day whose routines have no exercises is no session.
+    const st = { ...S, routines: S.routines || [], week: S.week || {}, dayPlan: S.dayPlan || {} }
+    let ids = []
+    try {
+      if (effectiveRoutines(st, today).some(r => r.ex && r.ex.length)) ids = effectiveRoutineIds(st, today)
+    } catch { ids = [] }
+    return ids.length ? { do: 'start', ids } : { do: 'open-start' }
+  }
+  if (tag.kind === 'exercise') {
+    const id = canonicalExId(tag.id)
+    if (liveSession(S)) {
+      const idx = (S.active.entries || []).findIndex(e => e && (e.id === id || e.id === tag.id))
+      if (idx >= 0) return { do: 'jump', idx }
+      return hasExercise(id) ? { do: 'offer-add', id } : { do: 'unknown-exercise' }
+    }
+    return hasExercise(id) ? { do: 'details', id } : { do: 'unknown-exercise' }
+  }
+  return { do: 'ignore' }
+}
+
+/**
+ * Drops repeats: the same sticker read again within `sameMs` (a phone held on it, or Android
+ * delivering one tap twice), and any tag within `anyMs` of the last one handled.
+ * Returns a function (url, now) => true when this one should be handled.
+ */
+export function tagDebouncer({ sameMs = 4000, anyMs = 1200 } = {}) {
+  let lastUrl = null, lastAt = -Infinity
+  return (url, now = Date.now()) => {
+    const gap = now - lastAt
+    if (gap >= 0 && gap < anyMs) return false
+    if (url === lastUrl && gap >= 0 && gap < sameMs) return false
+    lastUrl = url
+    lastAt = now
+    return true
+  }
+}

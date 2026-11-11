@@ -1,0 +1,15 @@
+{
+  "name": "大肌肌",
+  "short_name": "大肌肌",
+  "description": "训练计划、记录与进步分析",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#211a42",
+  "theme_color": "#211a42",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

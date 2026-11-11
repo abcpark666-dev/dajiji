@@ -1,0 +1,21 @@
+{
+  "appId": "app.dajiji.fitness",
+  "appName": "大肌肌",
+  "webDir": "dist",
+  "backgroundColor": "#211a42",
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "disable"
+    },
+    "SplashScreen": {
+      "launchShowDuration": 8000,
+      "launchAutoHide": true,
+      "launchFadeOutDuration": 180,
+      "backgroundColor": "#211a42",
+      "showSpinner": false
+    }
+  }
+}
