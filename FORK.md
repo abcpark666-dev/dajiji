@@ -8,13 +8,12 @@
 ## 改版记录
 
 - **2026-11-11 · 大肌肌 0.1.0**：更换应用名称、图标、启动图和默认配色；扩展周/月训练计划及训练记录展示，增加 PDF 导出和分析；将 Android 更新与深链指向本改版；排除 Gym visual 动作媒体，改用原创通用占位图。
+- **2026-11-16 · 素材授权说明修订**：补充上游关于非商业 fork 的 180px 素材例外，并说明本改版尚未确认适用范围。
 
 ## 授权与素材
 
 - 源码按 [GNU AGPL v3](LICENSE) 发布。保留上游版权及[第三方声明](NOTICE.md)；后续发行也应记录改动日期和内容。
-- OpenGym 的 Gym visual 动作静帧和动画不属于 AGPL 许可。本仓库不包含
-  `catalogue/media/still/` 或 `catalogue/media/clip/`，Android 包也不得加入这些文件。
-  内置动作目前显示本项目原创的通用[占位图](frontend/public/exercise-placeholder.svg)。
+- OpenGym 的 Gym visual 动作静帧和动画不属于 AGPL 许可。[上游 NOTICE](https://github.com/DuarteSantos8/openGym/blob/v1.4.4/NOTICE.md) 允许非商业 fork 在附带声明时保留原样 180px 素材，同时说明独立 App 需要自行取得授权。大肌肌作为改名后单独发行的产品，尚未确认是否适用该例外。本仓库和当前 APK 均不包含 `catalogue/media/still/` 或 `catalogue/media/clip/`；内置动作显示本项目原创的通用[占位图](frontend/public/exercise-placeholder.svg)。加入上游动画前须先确认授权范围。
 - 大肌肌的名称、像素「大」图标与紫橙配色是本改版新制作的品牌资源；不使用 OpenGym 的名称或杠铃标记作为产品标识。
 - 仍使用的人体图形、ExerciseDB 来源文本与扫码依赖的归属及许可见 `NOTICE.md`。
 
